@@ -36,6 +36,32 @@ interface PerplexityResponse {
 	}>;
 }
 
+// Predefined prompt templates for common use cases
+const PROMPT_TEMPLATES = {
+	technical_docs: {
+		system: 'You are a technical documentation assistant. Provide clear, accurate, and well-structured information with code examples where relevant.',
+		format: 'markdown',
+		include_sources: true,
+	},
+	security_practices: {
+		system: 'You are a security expert. Provide detailed security best practices, implementation guidelines, and potential vulnerability mitigations.',
+		format: 'markdown',
+		include_sources: true,
+	},
+	code_review: {
+		system: 'You are a code review assistant. Analyze code for best practices, potential issues, and suggest improvements.',
+		format: 'markdown',
+		include_sources: false,
+	},
+	api_docs: {
+		system: 'You are an API documentation assistant. Provide clear explanations of API endpoints, parameters, and usage examples.',
+		format: 'json',
+		include_sources: true,
+	},
+} as const;
+
+type PromptTemplate = keyof typeof PROMPT_TEMPLATES;
+
 class PerplexityServer {
 	private server: Server;
 
@@ -79,6 +105,11 @@ class PerplexityServer {
 											},
 										},
 									},
+								},
+								prompt_template: {
+									type: 'string',
+									enum: Object.keys(PROMPT_TEMPLATES),
+									description: 'Predefined prompt template to use for common use cases',
 								},
 								format: {
 									type: 'string',
@@ -136,19 +167,31 @@ class PerplexityServer {
 
 				const {
 					messages,
+					prompt_template,
 					model = 'sonar',
 					temperature = 0.7,
 					max_tokens = 1024,
-					format = 'text',
-					include_sources = false,
+					format: user_format,
+					include_sources: user_include_sources,
 				} = request.params.arguments as {
 					messages: Array<{ role: string; content: string }>;
+					prompt_template?: PromptTemplate;
 					model?: string;
 					temperature?: number;
 					max_tokens?: number;
 					format?: 'text' | 'markdown' | 'json';
 					include_sources?: boolean;
 				};
+
+				// Apply template if provided
+				const template = prompt_template ? PROMPT_TEMPLATES[prompt_template] : null;
+				const format = user_format ?? template?.format ?? 'text';
+				const include_sources = user_include_sources ?? template?.include_sources ?? false;
+
+				// Merge template system message with user messages if template is provided
+				const final_messages = template
+					? [{ role: 'system', content: template.system }, ...messages]
+					: messages;
 
 				try {
 					const controller = new AbortController();
@@ -168,7 +211,7 @@ class PerplexityServer {
 								},
 								body: JSON.stringify({
 									model,
-									messages,
+									messages: final_messages,
 									temperature,
 									max_tokens,
 									format,
