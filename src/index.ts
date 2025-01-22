@@ -151,12 +151,16 @@ class PerplexityServer {
 									minimum: 0,
 									maximum: 1,
 									default: 0.7,
+									description:
+										'Controls randomness in the output. Higher values (e.g. 0.8) make the output more random, while lower values (e.g. 0.2) make it more focused and deterministic.',
 								},
 								max_tokens: {
 									type: 'number',
 									minimum: 1,
 									maximum: 4096,
 									default: 1024,
+									description:
+										'The maximum number of tokens to generate in the response. One token is roughly 4 characters for English text.',
 								},
 							},
 							required: ['messages'],
