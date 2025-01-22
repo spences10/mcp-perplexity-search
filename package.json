@@ -1,0 +1,51 @@
+{
+	"name": "mcp-perplexity-search",
+	"version": "0.0.1",
+	"description": "MCP server for Perplexity search",
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"bin": {
+		"mcp-perplexity-search": "./dist/index.js"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"scripts": {
+		"build": "tsc && chmod +x dist/index.js",
+		"start": "node dist/index.js",
+		"dev": "npx @modelcontextprotocol/inspector dist/index.js",
+		"changeset": "changeset",
+		"version": "changeset version",
+		"release": "pnpm run build && changeset publish"
+	},
+	"keywords": [
+		"mcp",
+		"model-context-protocol",
+		"perplexity",
+		"search",
+		"web-content",
+		"llm",
+		"ai"
+	],
+	"author": "Scott Spence",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/spences10/mcp-perplexity-search.git"
+	},
+	"bugs": {
+		"url": "https://github.com/spences10/mcp-perplexity-search/issues"
+	},
+	"homepage": "https://github.com/spences10/mcp-perplexity-search#readme",
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "1.1.1"
+	},
+	"devDependencies": {
+		"@changesets/cli": "^2.27.11",
+		"@types/node": "^22.10.7",
+		"typescript": "^5.7.3"
+	}
+}
