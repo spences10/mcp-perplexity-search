@@ -11,6 +11,11 @@ import {
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import {
+	PROMPT_TEMPLATES,
+	type CustomPromptTemplate,
+	type PromptTemplate,
+} from './prompt-templates.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,32 +40,6 @@ interface PerplexityResponse {
 		finish_reason: string;
 	}>;
 }
-
-// Predefined prompt templates for common use cases
-const PROMPT_TEMPLATES = {
-	technical_docs: {
-		system: 'You are a technical documentation assistant. Provide clear, accurate, and well-structured information with code examples where relevant.',
-		format: 'markdown',
-		include_sources: true,
-	},
-	security_practices: {
-		system: 'You are a security expert. Provide detailed security best practices, implementation guidelines, and potential vulnerability mitigations.',
-		format: 'markdown',
-		include_sources: true,
-	},
-	code_review: {
-		system: 'You are a code review assistant. Analyze code for best practices, potential issues, and suggest improvements.',
-		format: 'markdown',
-		include_sources: false,
-	},
-	api_docs: {
-		system: 'You are an API documentation assistant. Provide clear explanations of API endpoints, parameters, and usage examples.',
-		format: 'json',
-		include_sources: true,
-	},
-} as const;
-
-type PromptTemplate = keyof typeof PROMPT_TEMPLATES;
 
 class PerplexityServer {
 	private server: Server;
@@ -109,18 +88,50 @@ class PerplexityServer {
 								prompt_template: {
 									type: 'string',
 									enum: Object.keys(PROMPT_TEMPLATES),
-									description: 'Predefined prompt template to use for common use cases',
+									description:
+										'Predefined prompt template to use for common use cases. Available templates:\n' +
+										Object.entries(PROMPT_TEMPLATES)
+											.map(
+												([key, value]) =>
+													`- ${key}: ${value.description}`,
+											)
+											.join('\n'),
+								},
+								custom_template: {
+									type: 'object',
+									description:
+										'Custom prompt template. If provided, overrides prompt_template.',
+									properties: {
+										system: {
+											type: 'string',
+											description:
+												"System message that sets the assistant's role and behavior",
+										},
+										format: {
+											type: 'string',
+											enum: ['text', 'markdown', 'json'],
+											description: 'Response format',
+										},
+										include_sources: {
+											type: 'boolean',
+											description:
+												'Whether to include source URLs in responses',
+										},
+									},
+									required: ['system'],
 								},
 								format: {
 									type: 'string',
 									enum: ['text', 'markdown', 'json'],
-									description: 'Response format. Use json for structured data, markdown for formatted text with code blocks',
-									default: 'text'
+									description:
+										'Response format. Use json for structured data, markdown for formatted text with code blocks. Overrides template format if provided.',
+									default: 'text',
 								},
 								include_sources: {
 									type: 'boolean',
-									description: 'Include source URLs in the response',
-									default: false
+									description:
+										'Include source URLs in the response. Overrides template setting if provided.',
+									default: false,
 								},
 								model: {
 									type: 'string',
@@ -168,6 +179,7 @@ class PerplexityServer {
 				const {
 					messages,
 					prompt_template,
+					custom_template,
 					model = 'sonar',
 					temperature = 0.7,
 					max_tokens = 1024,
@@ -176,6 +188,7 @@ class PerplexityServer {
 				} = request.params.arguments as {
 					messages: Array<{ role: string; content: string }>;
 					prompt_template?: PromptTemplate;
+					custom_template?: CustomPromptTemplate;
 					model?: string;
 					temperature?: number;
 					max_tokens?: number;
@@ -183,14 +196,22 @@ class PerplexityServer {
 					include_sources?: boolean;
 				};
 
-				// Apply template if provided
-				const template = prompt_template ? PROMPT_TEMPLATES[prompt_template] : null;
+				// Apply template if provided (custom template takes precedence)
+				const template =
+					custom_template ??
+					(prompt_template
+						? PROMPT_TEMPLATES[prompt_template]
+						: null);
 				const format = user_format ?? template?.format ?? 'text';
-				const include_sources = user_include_sources ?? template?.include_sources ?? false;
+				const include_sources =
+					user_include_sources ?? template?.include_sources ?? false;
 
 				// Merge template system message with user messages if template is provided
 				const final_messages = template
-					? [{ role: 'system', content: template.system }, ...messages]
+					? [
+							{ role: 'system', content: template.system },
+							...messages,
+					  ]
 					: messages;
 
 				try {
