@@ -28,7 +28,11 @@
 		"search",
 		"web-content",
 		"llm",
-		"ai"
+		"ai",
+		"chat-completion",
+		"prompt-templates",
+		"json-output",
+		"markdown-output"
 	],
 	"author": "Scott Spence",
 	"license": "MIT",
