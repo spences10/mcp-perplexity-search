@@ -4,6 +4,10 @@ A Model Context Protocol (MCP) server for integrating Perplexity's AI
 API with LLMs. This server provides advanced chat completion
 capabilities with specialized prompt templates for various use cases.
 
+<a href="https://glama.ai/mcp/servers/zlqdizpsr9">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/zlqdizpsr9/badge" />
+</a>
+
 ## Features
 
 - 🤖 Advanced chat completion using Perplexity's AI models
