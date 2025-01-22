@@ -1,5 +1,11 @@
 # mcp-perplexity-search
 
+## 0.0.5
+
+### Patch Changes
+
+- docs: update README to include glama badge
+
 ## 0.0.4
 
 ### Patch Changes
