@@ -5,11 +5,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
 	CallToolRequestSchema,
 	ErrorCode,
-	ListResourcesRequestSchema,
-	ListResourceTemplatesRequestSchema,
 	ListToolsRequestSchema,
 	McpError,
-	ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
@@ -83,15 +80,29 @@ class PerplexityServer {
 										},
 									},
 								},
+								format: {
+									type: 'string',
+									enum: ['text', 'markdown', 'json'],
+									description: 'Response format. Use json for structured data, markdown for formatted text with code blocks',
+									default: 'text'
+								},
+								include_sources: {
+									type: 'boolean',
+									description: 'Include source URLs in the response',
+									default: false
+								},
 								model: {
 									type: 'string',
 									enum: [
-										'sonar-small-chat',
-										'sonar-small-online',
-										'sonar-medium-chat',
-										'sonar-medium-online',
+										'sonar-pro',
+										'sonar',
+										'llama-3.1-sonar-small-128k-online',
+										'llama-3.1-sonar-large-128k-online',
+										'llama-3.1-sonar-huge-128k-online',
 									],
-									default: 'sonar-medium-chat',
+									description:
+										'Model to use for completion. Note: llama-3.1 models will be deprecated after 2/22/2025',
+									default: 'sonar',
 								},
 								temperature: {
 									type: 'number',
@@ -125,50 +136,80 @@ class PerplexityServer {
 
 				const {
 					messages,
-					model = 'sonar-medium-chat',
+					model = 'sonar',
 					temperature = 0.7,
 					max_tokens = 1024,
+					format = 'text',
+					include_sources = false,
 				} = request.params.arguments as {
 					messages: Array<{ role: string; content: string }>;
 					model?: string;
 					temperature?: number;
 					max_tokens?: number;
+					format?: 'text' | 'markdown' | 'json';
+					include_sources?: boolean;
 				};
 
 				try {
-					const response = await fetch(
-						'https://api.perplexity.ai/chat/completions',
-						{
-							method: 'POST',
-							headers: {
-								'Content-Type': 'application/json',
-								Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
-							},
-							body: JSON.stringify({
-								model,
-								messages,
-								temperature,
-								max_tokens,
-							}),
-						},
-					);
+					const controller = new AbortController();
+					const timeoutId = setTimeout(
+						() => controller.abort(),
+						30000,
+					); // 30 second timeout
 
-					if (!response.ok) {
-						throw new Error(
-							`Perplexity API error: ${response.statusText}`,
-						);
-					}
-
-					const data: PerplexityResponse = await response.json();
-
-					return {
-						content: [
+					try {
+						const response = await fetch(
+							'https://api.perplexity.ai/chat/completions',
 							{
-								type: 'text',
-								text: data.choices[0].message.content,
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/json',
+									Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
+								},
+								body: JSON.stringify({
+									model,
+									messages,
+									temperature,
+									max_tokens,
+									format,
+									include_sources,
+								}),
+								signal: controller.signal,
 							},
-						],
-					};
+						);
+
+						if (!response.ok) {
+							const errorData = await response
+								.json()
+								.catch(() => ({}));
+							throw new McpError(
+								ErrorCode.InternalError,
+								`Perplexity API error: ${response.statusText}${
+									errorData.error ? ` - ${errorData.error}` : ''
+								}`,
+							);
+						}
+
+						const data: PerplexityResponse = await response.json();
+
+						if (!data.choices?.[0]?.message) {
+							throw new McpError(
+								ErrorCode.InternalError,
+								'Invalid response format from Perplexity API',
+							);
+						}
+
+						return {
+							content: [
+								{
+									type: format === 'json' ? 'json' : 'text',
+									text: data.choices[0].message.content,
+								},
+							],
+						};
+					} finally {
+						clearTimeout(timeoutId);
+					}
 				} catch (error) {
 					return {
 						content: [
