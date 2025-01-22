@@ -1,5 +1,11 @@
 # mcp-perplexity-search
 
+## 0.0.4
+
+### Patch Changes
+
+- feat: expand features and documentation for PerplexityServer
+
 ## 0.0.3
 
 ### Patch Changes
