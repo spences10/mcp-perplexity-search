@@ -1,5 +1,7 @@
 # mcp-perplexity-search
 
+[![smithery badge](https://smithery.ai/badge/@spences10/mcp-perplexity-search)](https://smithery.ai/server/@spences10/mcp-perplexity-search)
+
 A Model Context Protocol (MCP) server for integrating Perplexity's AI
 API with LLMs. This server provides advanced chat completion
 capabilities with specialized prompt templates for various use cases.
@@ -23,6 +25,14 @@ capabilities with specialized prompt templates for various use cases.
 - 🚀 Support for various Perplexity models including Sonar and LLaMA
 
 ## Configuration
+
+### Installing via Smithery
+
+To install mcp-perplexity-search for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@spences10/mcp-perplexity-search):
+
+```bash
+npx -y @smithery/cli install @spences10/mcp-perplexity-search --client claude
+```
 
 This server requires configuration through your MCP client. Here are
 examples for different environments:
